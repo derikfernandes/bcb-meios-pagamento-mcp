@@ -78,8 +78,9 @@ ngrok http 3000
 
 Consulte [DEPLOYMENT.md](./DEPLOYMENT.md) para guia completo de deployment.
 
-#### Passo 2: Configurar no ChatGPT
+#### Passo 2: Configurar no ChatGPT/GPT Builder
 
+**Para ChatGPT (SSE):**
 1. Acesse ChatGPT com assinatura **Pro, Plus, Team, Education ou Enterprise**
 2. Ative o **Developer Mode**
 3. Adicione um novo MCP Server:
@@ -88,6 +89,27 @@ Consulte [DEPLOYMENT.md](./DEPLOYMENT.md) para guia completo de deployment.
    - **Tipo**: Server-Sent Events (SSE)
 
 4. Teste perguntando: *"Quais foram os dados de PIX em dezembro de 2023?"*
+
+**Para GPT Builder (REST API):**
+1. Faça o deploy do servidor no Render (ou outro provedor)
+2. Acesse o GPT Builder
+3. Configure um servidor MCP:
+   - **URL Base**: `https://seu-servidor.onrender.com`
+   - **Tipo**: REST API
+   - **Endpoints disponíveis**:
+     - `GET /tools` - Lista todas as ferramentas disponíveis
+     - `POST /tools/call` - Executa uma ferramenta
+     - `GET /health` - Verifica se o servidor está online
+     - `GET /mcp` - Retorna informações do servidor MCP
+
+4. O GPT Builder irá automaticamente descobrir as ferramentas através do endpoint `/tools`
+5. Teste perguntando: *"Quais foram os dados de PIX em dezembro de 2023?"*
+
+**Nota**: Se você receber o erro "Unable to load tools", verifique:
+- Se o servidor está rodando e acessível via HTTPS
+- Se o endpoint `/tools` retorna as ferramentas no formato correto
+- Se o endpoint `/health` retorna `{"status":"ok"}`
+- Se há problemas de CORS (já configurado no código)
 
 ### Opção 3: Outros LLMs
 

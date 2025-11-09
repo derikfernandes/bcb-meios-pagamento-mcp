@@ -249,6 +249,181 @@ const tools: Tool[] = [
   },
 ];
 
+// Função para executar uma ferramenta (compartilhada entre REST e MCP)
+async function executeTool(name: string, args: any) {
+  try {
+    switch (name) {
+      case "consultar_meios_pagamento_mensal": {
+        const { ano_mes, top = 100, skip, filtro } = args as {
+          ano_mes: string;
+          top?: number;
+          skip?: number;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`MeiosdePagamentosMensalDA(AnoMes=@AnoMes)?@AnoMes='${ano_mes}'`, {
+          formato: "json",
+          top,
+          skip,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_meios_pagamento_trimestral": {
+        const { trimestre, top = 100, skip, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          skip?: number;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`MeiosdePagamentosTrimestralDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          skip,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_transacoes_cartoes": {
+        const { trimestre, top = 100, ordenar_por, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          ordenar_por?: string;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`Quantidadeetransacoesdecartoes(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          orderby: ordenar_por,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_estabelecimentos_credenciados": {
+        const { trimestre, top = 100, ordenar_por, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          ordenar_por?: string;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`EstabCredTransDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          orderby: ordenar_por,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_taxas_intercambio": {
+        const { trimestre, top = 100, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`TaxasIntercambioDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_taxas_desconto": {
+        const { trimestre, top = 100, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`TaxasDescontoDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_terminais_atm": {
+        const { trimestre, top = 100, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`TerminaisATMDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      case "consultar_portadores_cartao": {
+        const { trimestre, top = 100, filtro } = args as {
+          trimestre: string;
+          top?: number;
+          filtro?: string;
+        };
+
+        const data = await fetchBCBData(`PortadoresCartaoDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
+          formato: "json",
+          top,
+          filter: filtro,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      default:
+        throw new Error(`Ferramenta desconhecida: ${name}`);
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 // Criar servidor MCP
 function createMCPServer() {
   const server = new Server(
@@ -270,213 +445,27 @@ function createMCPServer() {
     };
   });
 
-  // Handler para execução de ferramentas
+  // Handler para execução de ferramentas (usa a função compartilhada)
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
-    try {
-      switch (name) {
-        case "consultar_meios_pagamento_mensal": {
-          const { ano_mes, top = 100, skip, filtro } = args as {
-            ano_mes: string;
-            top?: number;
-            skip?: number;
-            filtro?: string;
-          };
+    const result = await executeTool(name, args || {});
 
-          const data = await fetchBCBData(`MeiosdePagamentosMensalDA(AnoMes=@AnoMes)?@AnoMes='${ano_mes}'`, {
-            formato: "json",
-            top,
-            skip,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_meios_pagamento_trimestral": {
-          const { trimestre, top = 100, skip, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            skip?: number;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`MeiosdePagamentosTrimestralDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            skip,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_transacoes_cartoes": {
-          const { trimestre, top = 100, ordenar_por, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            ordenar_por?: string;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`Quantidadeetransacoesdecartoes(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            orderby: ordenar_por,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_estabelecimentos_credenciados": {
-          const { trimestre, top = 100, ordenar_por, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            ordenar_por?: string;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`EstabCredTransDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            orderby: ordenar_por,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_taxas_intercambio": {
-          const { trimestre, top = 100, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`TaxasIntercambioDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_taxas_desconto": {
-          const { trimestre, top = 100, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`TaxasDescontoDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_terminais_atm": {
-          const { trimestre, top = 100, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`TerminaisATMDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        case "consultar_portadores_cartao": {
-          const { trimestre, top = 100, filtro } = args as {
-            trimestre: string;
-            top?: number;
-            filtro?: string;
-          };
-
-          const data = await fetchBCBData(`PortadoresCartaoDA(trimestre=@trimestre)?@trimestre='${trimestre}'`, {
-            formato: "json",
-            top,
-            filter: filtro,
-          });
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(data, null, 2),
-              },
-            ],
-          };
-        }
-
-        default:
-          throw new Error(`Ferramenta desconhecida: ${name}`);
-      }
-    } catch (error) {
+    if (result.success) {
       return {
         content: [
           {
             type: "text",
-            text: `Erro ao executar ${name}: ${error instanceof Error ? error.message : String(error)}`,
+            text: JSON.stringify(result.data, null, 2),
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Erro ao executar ${name}: ${result.error || 'Erro desconhecido'}`,
           },
         ],
         isError: true,
@@ -487,7 +476,7 @@ function createMCPServer() {
   return server;
 }
 
-// Iniciar servidor HTTP com SSE
+// Iniciar servidor HTTP com SSE e REST
 async function main() {
   const app = express();
   const PORT = process.env.PORT || 3000;
@@ -501,29 +490,154 @@ async function main() {
     res.json({ status: 'ok', service: 'bcb-meios-pagamento-mcp' });
   });
 
-  // SSE endpoint para MCP
-  app.get('/sse', async (req, res) => {
-    console.error('Nova conexão SSE estabelecida');
-
-    const server = createMCPServer();
-    const transport = new SSEServerTransport('/message', res);
-
-    await server.connect(transport);
-
-    // Cleanup quando a conexão fechar
-    req.on('close', () => {
-      console.error('Conexão SSE fechada');
+  // REST endpoint para listar ferramentas (compatível com GPT Builder)
+  app.get('/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
     });
   });
 
-  // Endpoint para mensagens MCP
+  // Endpoint para listar ferramentas (formato alternativo)
+  app.get('/api/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  // Handler para executar ferramentas (reutilizável)
+  const handleToolCall = async (req: express.Request, res: express.Response) => {
+    try {
+      // Suporta múltiplos formatos de requisição
+      const { name, tool, arguments: args, args: argsAlt, parameters } = req.body;
+      const toolName = name || tool;
+      const toolArgs = args || argsAlt || parameters || {};
+
+      if (!toolName) {
+        return res.status(400).json({
+          success: false,
+          error: 'Nome da ferramenta é obrigatório',
+          message: 'Especifique "name" ou "tool" no corpo da requisição',
+        });
+      }
+
+      const result = await executeTool(toolName, toolArgs);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.data, null, 2),
+            },
+          ],
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          content: [
+            {
+              type: 'text',
+              text: result.error || 'Erro desconhecido',
+            },
+          ],
+          isError: true,
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        content: [
+          {
+            type: 'text',
+            text: `Erro ao executar ferramenta: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      });
+    }
+  };
+
+  // REST endpoint para executar ferramentas (compatível com GPT Builder)
+  app.post('/tools/call', handleToolCall);
+
+  // Endpoint alternativo para executar ferramentas
+  app.post('/api/tools/call', handleToolCall);
+
+  // Endpoint MCP padrão (retorna informações do servidor e ferramentas)
+  app.get('/mcp', (req, res) => {
+    res.json({
+      name: 'bcb-meios-pagamento-mcp',
+      version: '1.0.0',
+      capabilities: {
+        tools: {},
+      },
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  // Endpoint alternativo para manifesto (compatível com GPT Builder)
+  app.get('/.well-known/mcp', (req, res) => {
+    res.json({
+      name: 'bcb-meios-pagamento-mcp',
+      version: '1.0.0',
+      protocolVersion: '2024-11-05',
+      capabilities: {
+        tools: {},
+      },
+    });
+  });
+
+  // SSE endpoint para MCP (compatível com ChatGPT)
+  app.get('/sse', async (req, res) => {
+    console.error('Nova conexão SSE estabelecida');
+
+    // Configurar headers para SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    try {
+      const server = createMCPServer();
+      const transport = new SSEServerTransport('/message', res);
+
+      await server.connect(transport);
+
+      // Cleanup quando a conexão fechar
+      req.on('close', () => {
+        console.error('Conexão SSE fechada');
+      });
+    } catch (error) {
+      console.error('Erro na conexão SSE:', error);
+      res.status(500).end();
+    }
+  });
+
+  // Endpoint para mensagens MCP (usado pelo SSEServerTransport)
   app.post('/message', async (req, res) => {
     // Este endpoint é usado pelo SSEServerTransport para receber mensagens
-    res.status(405).json({ error: 'Use SSE endpoint' });
+    // Não deve ser chamado diretamente
+    res.status(405).json({ error: 'Use SSE endpoint para conexões MCP' });
   });
 
   app.listen(PORT, () => {
     console.error(`Servidor MCP BCB rodando na porta ${PORT}`);
+    console.error(`Health check: http://localhost:${PORT}/health`);
+    console.error(`Tools endpoint: http://localhost:${PORT}/tools`);
+    console.error(`Tools call endpoint: http://localhost:${PORT}/tools/call`);
     console.error(`SSE endpoint: http://localhost:${PORT}/sse`);
   });
 }
