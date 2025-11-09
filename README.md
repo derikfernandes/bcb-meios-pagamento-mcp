@@ -18,7 +18,7 @@ Este servidor MCP fornece acesso programático à API de Dados Abertos de Meios 
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/bcb-meios-pagamento-mcp.git
+git clone https://github.com/derikfernandes/bcb-meios-pagamento-mcp.git
 cd bcb-meios-pagamento-mcp
 
 # Instale as dependências
@@ -93,23 +93,40 @@ Consulte [DEPLOYMENT.md](./DEPLOYMENT.md) para guia completo de deployment.
 **Para GPT Builder (REST API):**
 1. Faça o deploy do servidor no Render (ou outro provedor)
 2. Acesse o GPT Builder
-3. Configure um servidor MCP:
-   - **URL Base**: `https://seu-servidor.onrender.com`
-   - **Tipo**: REST API
-   - **Endpoints disponíveis**:
-     - `GET /tools` - Lista todas as ferramentas disponíveis
-     - `POST /tools/call` - Executa uma ferramenta
-     - `GET /health` - Verifica se o servidor está online
-     - `GET /mcp` - Retorna informações do servidor MCP
+3. Configure um servidor MCP com uma das seguintes opções:
 
-4. O GPT Builder irá automaticamente descobrir as ferramentas através do endpoint `/tools`
+   **Opção A - Endpoint Principal:**
+   - **URL Base**: `https://seu-servidor.onrender.com`
+   - **Endpoint de Ferramentas**: `/tools`
+   - **Endpoint de Execução**: `/tools/call`
+
+   **Opção B - Endpoint com Nome do Servidor:**
+   - **URL Base**: `https://seu-servidor.onrender.com`
+   - **Endpoint de Ferramentas**: `/bcb_mcp/tools`
+   - **Endpoint de Execução**: `/bcb_mcp/tools/call`
+
+   **Opção C - Endpoint MCP v1:**
+   - **URL Base**: `https://seu-servidor.onrender.com`
+   - **Endpoint de Ferramentas**: `/mcp/v1/tools`
+   - **Endpoint de Execução**: `/mcp/v1/tools/call`
+
+4. O GPT Builder irá automaticamente descobrir as ferramentas através do endpoint configurado
 5. Teste perguntando: *"Quais foram os dados de PIX em dezembro de 2023?"*
 
-**Nota**: Se você receber o erro "Unable to load tools", verifique:
-- Se o servidor está rodando e acessível via HTTPS
-- Se o endpoint `/tools` retorna as ferramentas no formato correto
-- Se o endpoint `/health` retorna `{"status":"ok"}`
-- Se há problemas de CORS (já configurado no código)
+**Endpoints Disponíveis:**
+- `GET /health` - Verifica se o servidor está online
+- `GET /discover` - Lista todos os endpoints disponíveis
+- `GET /tools` - Lista todas as ferramentas (também aceita POST)
+- `POST /tools/call` - Executa uma ferramenta
+- `GET /bcb_mcp/tools` - Lista ferramentas (formato com nome do servidor)
+- `POST /bcb_mcp/tools/call` - Executa ferramenta (formato com nome do servidor)
+- `GET /mcp/v1/tools` - Lista ferramentas (protocolo MCP v1)
+- `POST /mcp/v1/tools/call` - Executa ferramenta (protocolo MCP v1)
+- `GET /mcp` - Retorna informações do servidor MCP
+- `GET /mcp/manifest` - Retorna manifesto MCP
+- `GET /.well-known/mcp` - Manifesto MCP (padrão)
+
+**Nota**: Se você receber o erro "Unable to load tools" ou "Error retrieving tool list from MCP server", consulte o guia [DEBUG_MCP.md](./DEBUG_MCP.md) para solução de problemas.
 
 ### Opção 3: Outros LLMs
 
@@ -246,15 +263,56 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull re
 
 ## 📧 Contato
 
-Para dúvidas ou sugestões, abra uma issue no GitHub.
+Para dúvidas ou sugestões, abra uma issue no GitHub:
+https://github.com/derikfernandes/bcb-meios-pagamento-mcp/issues
+
+## 🌐 Repositório
+
+- **GitHub**: https://github.com/derikfernandes/bcb-meios-pagamento-mcp
+- **Clone**: `git clone https://github.com/derikfernandes/bcb-meios-pagamento-mcp.git`
 
 ## 📚 Documentação Adicional
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Guia completo de deployment para ChatGPT
 - [GUIA_CONFIGURACAO.md](./GUIA_CONFIGURACAO.md) - Configuração detalhada
+- [GPT_BUILDER_SETUP.md](./GPT_BUILDER_SETUP.md) - Guia específico para GPT Builder
+- [DEBUG_MCP.md](./DEBUG_MCP.md) - Guia de solução de problemas
 - [EXEMPLOS.md](./EXEMPLOS.md) - Exemplos de uso
+
+## 🔍 Testando o Servidor
+
+Após fazer o deploy, você pode testar o servidor acessando:
+
+```bash
+# Health check
+curl https://seu-servidor.onrender.com/health
+
+# Listar ferramentas
+curl https://seu-servidor.onrender.com/tools
+
+# Descobrir endpoints disponíveis
+curl https://seu-servidor.onrender.com/discover
+
+# Testar endpoint com nome do servidor
+curl https://seu-servidor.onrender.com/bcb_mcp/tools
+```
+
+## 🐛 Solução de Problemas
+
+Se você encontrar problemas ao conectar o servidor:
+
+1. **Verifique os logs do servidor** - O servidor registra todas as requisições
+2. **Teste os endpoints manualmente** - Use `curl` para testar cada endpoint
+3. **Acesse `/discover`** - Veja todos os endpoints disponíveis
+4. **Consulte [DEBUG_MCP.md](./DEBUG_MCP.md)** - Guia completo de solução de problemas
 
 ## 🔄 Atualizações
 
-- v1.0.0 (2024): Versão inicial com 8 ferramentas principais
-- v1.1.0 (2025): Adicionado suporte para ChatGPT via HTTP/SSE
+- **v1.0.0** (2024): Versão inicial com 8 ferramentas principais
+- **v1.1.0** (2025): Adicionado suporte para ChatGPT via HTTP/SSE
+- **v1.2.0** (2025): Adicionados múltiplos endpoints REST para compatibilidade com GPT Builder
+  - Suporte para `/bcb_mcp/tools` e `/bcb-mcp/tools`
+  - Endpoints MCP v1 (`/mcp/v1/tools`)
+  - Endpoint de descoberta (`/discover`)
+  - Middleware de logging para debug
+  - Suporte completo para CORS preflight

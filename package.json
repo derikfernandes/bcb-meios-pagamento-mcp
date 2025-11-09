@@ -1,6 +1,6 @@
 {
   "name": "bcb-meios-pagamento-mcp",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Servidor MCP para API de Dados Abertos de Meios de Pagamento do Banco Central do Brasil",
   "type": "module",
   "main": "dist/index.js",
@@ -14,14 +14,30 @@
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "banco-central",
     "bcb",
     "meios-de-pagamento",
     "dados-abertos",
-    "brasil"
+    "brasil",
+    "pix",
+    "cartoes",
+    "pagamento",
+    "openai",
+    "gpt-builder",
+    "chatgpt",
+    "claude"
   ],
-  "author": "",
+  "author": "derikfernandes",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derikfernandes/bcb-meios-pagamento-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/derikfernandes/bcb-meios-pagamento-mcp/issues"
+  },
+  "homepage": "https://github.com/derikfernandes/bcb-meios-pagamento-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "axios": "^1.7.9",
