@@ -485,13 +485,56 @@ async function main() {
   app.use(cors());
   app.use(express.json());
 
+  // Suporte para OPTIONS (CORS preflight) - deve ser o primeiro
+  app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.sendStatus(200);
+  });
+
+  // Middleware de logging para debug
+  app.use((req, res, next) => {
+    console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+
   // Health check endpoint
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'bcb-meios-pagamento-mcp' });
   });
 
+  // Endpoint de descoberta (retorna informações sobre o servidor e endpoints)
+  app.get('/discover', (req, res) => {
+    res.json({
+      name: 'bcb-meios-pagamento-mcp',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        tools: {
+          list: ['/tools', '/api/tools', '/mcp/v1/tools', '/bcb_mcp/tools', '/bcb-mcp/tools'],
+          call: ['/tools/call', '/api/tools/call', '/mcp/v1/tools/call', '/bcb_mcp/tools/call', '/bcb-mcp/tools/call'],
+        },
+        manifest: ['/mcp', '/mcp/manifest', '/.well-known/mcp'],
+        sse: '/sse',
+      },
+      toolsCount: tools.length,
+    });
+  });
+
   // REST endpoint para listar ferramentas (compatível com GPT Builder)
   app.get('/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  // Suporte para POST em /tools (alguns clientes podem usar POST)
+  app.post('/tools', (req, res) => {
     res.json({
       tools: tools.map(tool => ({
         name: tool.name,
@@ -588,6 +631,55 @@ async function main() {
     });
   });
 
+  // Endpoints MCP protocol v1 (padrão do protocolo MCP)
+  app.get('/mcp/v1/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  app.post('/mcp/v1/tools/call', handleToolCall);
+
+  // Endpoints com nome do servidor (para clientes que usam o nome)
+  app.get('/bcb_mcp/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  // Suporte para POST em /bcb_mcp/tools
+  app.post('/bcb_mcp/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  app.post('/bcb_mcp/tools/call', handleToolCall);
+
+  app.get('/bcb-mcp/tools', (req, res) => {
+    res.json({
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    });
+  });
+
+  app.post('/bcb-mcp/tools/call', handleToolCall);
+
   // Endpoint alternativo para manifesto (compatível com GPT Builder)
   app.get('/.well-known/mcp', (req, res) => {
     res.json({
@@ -597,6 +689,23 @@ async function main() {
       capabilities: {
         tools: {},
       },
+    });
+  });
+
+  // Endpoint de manifesto MCP (alternativo)
+  app.get('/mcp/manifest', (req, res) => {
+    res.json({
+      name: 'bcb-meios-pagamento-mcp',
+      version: '1.0.0',
+      protocolVersion: '2024-11-05',
+      capabilities: {
+        tools: {},
+      },
+      tools: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
     });
   });
 
@@ -633,11 +742,46 @@ async function main() {
     res.status(405).json({ error: 'Use SSE endpoint para conexões MCP' });
   });
 
+  // Endpoint catch-all para debug (deve ser o último)
+  app.use((req, res) => {
+    if (!res.headersSent) {
+      console.error(`[404] Rota não encontrada: ${req.method} ${req.path}`);
+      res.status(404).json({
+        error: 'Endpoint não encontrado',
+        path: req.path,
+        method: req.method,
+        hint: 'Acesse /discover para ver todos os endpoints disponíveis',
+        availableEndpoints: [
+          'GET /health',
+          'GET /discover',
+          'GET /tools',
+          'POST /tools',
+          'POST /tools/call',
+          'GET /api/tools',
+          'POST /api/tools/call',
+          'GET /mcp/v1/tools',
+          'POST /mcp/v1/tools/call',
+          'GET /bcb_mcp/tools',
+          'POST /bcb_mcp/tools',
+          'POST /bcb_mcp/tools/call',
+          'GET /bcb-mcp/tools',
+          'POST /bcb-mcp/tools/call',
+          'GET /mcp',
+          'GET /mcp/manifest',
+          'GET /.well-known/mcp',
+          'GET /sse',
+        ],
+      });
+    }
+  });
+
   app.listen(PORT, () => {
     console.error(`Servidor MCP BCB rodando na porta ${PORT}`);
     console.error(`Health check: http://localhost:${PORT}/health`);
     console.error(`Tools endpoint: http://localhost:${PORT}/tools`);
     console.error(`Tools call endpoint: http://localhost:${PORT}/tools/call`);
+    console.error(`MCP v1 tools: http://localhost:${PORT}/mcp/v1/tools`);
+    console.error(`bcb_mcp tools: http://localhost:${PORT}/bcb_mcp/tools`);
     console.error(`SSE endpoint: http://localhost:${PORT}/sse`);
   });
 }
